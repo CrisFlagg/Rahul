@@ -1,99 +1,148 @@
 # Tutorial: Install Python, set up a virtual environment, and use Jupyter Notebooks on macOS
 
-This guide is for first-time users. It will walk you through:
-- Installing Homebrew (macOS package manager)
-- Installing Python 3
-- Creating and using a virtual environment
-- Installing Jupyter (Notebook or Lab)
-- Opening and running the tutorial notebooks in this repo
-- Optional: setting your YouTube API key for the YouTube notebook
-- Troubleshooting and alternatives
+This guide is written for first-time users. It explains not just what to do, but why. By the end you’ll be able to:
+- Install Python 3 on macOS
+- Create and use a virtual environment (an isolated Python workspace)
+- Install Jupyter (Lab and Notebook)
+- Open and run the tutorial notebooks in this repo
+- Optionally configure a YouTube API key for the YouTube tutorial
+- Troubleshoot the most common issues
 
-Prerequisites: A Mac running macOS 11+ (Big Sur or newer). You’ll use the Terminal app (found in Applications > Utilities > Terminal).
+You will use the Terminal app (Applications > Utilities > Terminal). Terminal is where we type commands for the computer to run.
+
+
+## 0) Before you start: keyboard, shell, and paths
+
+- macOS uses the zsh shell by default (it’s fine if you don’t know what that means yet).
+- View which shell you’re using:
+  ```
+  echo $SHELL
+  ```
+  Typical output: `/bin/zsh`. That’s zsh.
+
+- “PATH” is a list of folders your shell searches for programs (like `python3` or `jupyter`).
+  ```
+  echo $PATH
+  ```
+  We’ll add Homebrew to PATH so `brew`, `python3`, and `jupyter` are easy to run.
+
+- To see your current folder (directory):
+  ```
+  pwd
+  ```
+  To list files in the folder:
+  ```
+  ls
+  ```
 
 
 ## 1) Install Homebrew (recommended)
 
-Homebrew makes it easy to install developer tools on macOS.
+Homebrew is a package manager for macOS. It makes installing developer tools (like Python) simple.
 
 - Open Terminal and run:
+  ```
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  ```
 
-```
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
-
-- When it finishes, follow any on-screen instructions to add Homebrew to your PATH. On Apple silicon (M1/M2/M3), you’ll likely need to add this line to your shell profile (zsh is default on macOS):
-
-```
-echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
-eval "$(/opt/homebrew/bin/brew shellenv)"
-```
+- When it finishes, add Homebrew to your PATH (Apple silicon Macs use `/opt/homebrew`):
+  ```
+  echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+  ```
+  If you’re on Intel (older Macs), Homebrew usually lives at `/usr/local`. The installer prints instructions—follow those.
 
 - Verify Homebrew:
+  ```
+  brew --version
+  ```
+  If you see a version number, Homebrew is installed.
 
-```
-brew --version
-```
 
-If you see a version number, Homebrew is installed.
+### Alternative: Install Python without Homebrew
+
+If you prefer not to use Homebrew, you can install Python from python.org:
+
+- Download the latest macOS installer: https://www.python.org/downloads/macos/
+- Run the installer and follow prompts
+- Verify:
+  ```
+  python3 --version
+  which python3
+  ```
+  The path may be under `/Library/Frameworks/...` or `/usr/local/bin/python3`. Both are fine.
+
+We’ll continue with the Homebrew route below, as it’s commonly used.
 
 
 ## 2) Install Python 3 with Homebrew
 
 - In Terminal:
-
-```
-brew update
-brew install python
-```
+  ```
+  brew update
+  brew install python
+  ```
 
 - Verify Python:
-
-```
-python3 --version
-which python3
-```
-
-You should see a Python 3.x version and a path under `/opt/homebrew/bin/python3` (Apple silicon) or `/usr/local/bin/python3` (Intel).
+  ```
+  python3 --version
+  which python3
+  ```
+  You should see `Python 3.x.y` and a path like `/opt/homebrew/bin/python3` (Apple silicon) or `/usr/local/bin/python3` (Intel).
 
 
 ## 3) Create a project folder and a virtual environment
 
-A virtual environment keeps your project’s Python packages separate from your system Python.
+A virtual environment (venv) is an isolated Python workspace. It keeps your project’s packages separate, avoiding conflicts.
 
-- In Terminal, go to your project (the folder with this repo):
-
-```
-cd /path/to/your/project
-```
+- In Terminal, go to your project (the folder with this repo). Example:
+  ```
+  cd /path/to/your/project
+  ```
+  Tip: In Finder, right-click your project folder > “Copy (as) Pathname”, then paste into Terminal after `cd `.
 
 - Create a virtual environment named `.venv`:
-
-```
-python3 -m venv .venv
-```
-
-This creates a `.venv` folder containing an isolated Python + pip.
+  ```
+  python3 -m venv .venv
+  ```
+  This creates a folder `.venv` containing an isolated Python and pip.
 
 - Activate the virtual environment:
+  ```
+  source .venv/bin/activate
+  ```
+  Your prompt should change to show `(.venv)` like:
+  ```
+  (.venv) yourname@Mac project %
+  ```
 
-```
-source .venv/bin/activate
-```
+- Upgrade pip (recommended):
+  ```
+  pip install --upgrade pip
+  ```
 
-You should see your shell prompt change, for example to:
+- Deactivate later (when you’re done):
+  ```
+  deactivate
+  ```
 
-```
-(.venv) yourname@Mac ~ %
-```
+Why venv? Different projects often need different versions of packages. venv keeps each project clean and self-contained.
 
-- Upgrade pip (good practice):
 
-```
-pip install --upgrade pip
-```
+### Optional: Make your venv a selectable Jupyter kernel
 
-Note: When the venv is active, `python` and `pip` refer to the venv versions. To exit the venv later, run `deactivate`.
+This helps ensure notebooks run with the correct Python:
+
+- Install ipykernel in your venv:
+  ```
+  pip install ipykernel
+  ```
+
+- Register the venv as a Jupyter kernel:
+  ```
+  python -m ipykernel install --user --name aimusic-venv --display-name "Python (aimusic)"
+  ```
+  In Jupyter, you can select the kernel “Python (aimusic)” for notebooks in this repo (Kernel > Change Kernel).
 
 
 ## 4) Install Jupyter and required libraries
@@ -101,97 +150,107 @@ Note: When the venv is active, `python` and `pip` refer to the venv versions. To
 We’ll install Jupyter Lab (modern UI) and the libraries used by these notebooks.
 
 - With your venv activated:
+  ```
+  pip install jupyterlab notebook pandas matplotlib requests huggingface_hub pytrends
+  ```
 
-```
-pip install jupyterlab notebook pandas matplotlib requests huggingface_hub pytrends
-```
-
-This installs:
-- jupyterlab and notebook: Jupyter interfaces
-- pandas: DataFrames (tabular data)
-- matplotlib: plotting
-- requests: web requests
-- huggingface_hub: dataset download
-- pytrends: Google Trends access
+What these do:
+- jupyterlab + notebook: Notebook interfaces
+- pandas: Tabular data (DataFrames)
+- matplotlib: Plotting
+- requests: HTTP requests
+- huggingface_hub: Download datasets/models from Hugging Face
+- pytrends: Google Trends interface (no API key required)
 
 
 ## 5) Launch Jupyter Lab and open the tutorials
 
 - Start Jupyter Lab from your project root:
-
-```
-jupyter lab
-```
-
-This opens Jupyter Lab in your default browser. If it doesn’t, Terminal will show a URL (something like http://localhost:8888/lab); copy-paste it into your browser.
+  ```
+  jupyter lab
+  ```
+  It opens Jupyter in your default browser. If it doesn’t, Terminal shows a URL (e.g., http://localhost:8888/lab). Copy-paste it into Safari or Chrome.
 
 - In the Jupyter file browser (left pane), navigate to the `notebooks/` folder:
   - `ai_music_tutorial.ipynb` — no-API tutorial (SONICS, Google Trends, Deezer points)
   - `youtube_ai_music_tutorial.ipynb` — optional YouTube API tutorial
 
-- Click a notebook to open it, then run cells top-to-bottom:
-  - Use the “Run” ▶ button or press Shift+Enter to run the current cell.
-  - If the notebook asks for permissions or “Trust this notebook”, confirm.
+- Click a notebook to open it. Run cells from top to bottom:
+  - Run button ▶ or Shift+Enter runs the selected cell
+  - Kernel busy indicator (top-right) shows when code is running
+  - To stop a long-running cell: Kernel > Interrupt
+  - To fully restart: Kernel > Restart Kernel
+
+- “Trust” prompt:
+  - If Jupyter asks you to trust the notebook, click Trust so it can run code and display outputs.
 
 
-## 6) Optional: Using Jupyter Notebook (classic UI)
+### Optional: Use Jupyter Notebook (classic UI)
 
 If you prefer the classic interface:
-
 ```
 jupyter notebook
 ```
+Then open the notebooks under `notebooks/` and run them the same way.
 
-Then open the notebooks under the `notebooks/` folder and run them the same way.
 
+## 6) Optional: Set your YouTube API key (for the YouTube tutorial)
 
-## 7) Optional: Set your YouTube API key (for the YouTube tutorial)
+The YouTube tutorial uses the YouTube Data API to count monthly uploads matching AI-music queries (heuristic).
 
-The `youtube_ai_music_tutorial.ipynb` notebook needs a YouTube Data API key. You can set it either before launching Jupyter or inside the notebook.
+- Set the key in your shell (zsh):
+  ```
+  export YOUTUBE_API_KEY=your_key_here
+  jupyter lab
+  ```
+- Or paste the key when the notebook prompts you.
 
-- In Terminal (zsh on macOS):
-
-```
-export YOUTUBE_API_KEY=your_key_here
-```
-
-- Then launch Jupyter Lab:
-
-```
-jupyter lab
-```
-
-- Alternatively, when the notebook prompts for the API key, paste it there.
-
-Tip: To make the key persistent, add the `export` line to your `~/.zshrc`:
+To make it persistent across Terminal sessions:
 ```
 echo 'export YOUTUBE_API_KEY=your_key_here' >> ~/.zshrc
 source ~/.zshrc
 ```
 
+Note: The main pipeline runs without YouTube (it will skip that part if the key isn’t set).
 
-## 8) Running scripts without notebooks (optional)
 
-You can also run the Python scripts in `scripts/` from Terminal.
+## 7) Running the scripts directly (optional)
 
-- With the virtual environment activated:
+You can run the Python scripts in `scripts/` from Terminal.
 
-```
-python scripts/download_ai_music_data.py
-python scripts/visualize_ai_music_usage.py
-```
+- With the venv activated:
+  ```
+  python scripts/download_ai_music_data.py
+  python scripts/visualize_ai_music_usage.py
+  ```
 
 Outputs:
 - Data CSVs in `data/` and `data/sonics/`
 - Figures in `figures/`
 
-Note: The download script will skip YouTube unless `YOUTUBE_API_KEY` is set. It always collects Google Trends (no API key) and saves Deezer timeline points.
+The download script:
+- Always collects Google Trends (no API key) and saves Deezer points
+- Skips YouTube unless `YOUTUBE_API_KEY` is set
 
 
-## 9) Troubleshooting
+## 8) Saving and sharing your environment (requirements.txt)
+
+To record exactly which packages and versions you used:
+```
+pip freeze > requirements.txt
+```
+To recreate the same environment later (or on another machine):
+```
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+
+## 9) Troubleshooting and common pitfalls
 
 - “command not found: brew”
-  - Homebrew didn’t install correctly or isn’t in PATH. Re-run the install command and the PATH setup:
+  - Homebrew isn’t installed or PATH isn’t set. Re-run the installer and PATH setup:
     ```
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
@@ -199,48 +258,54 @@ Note: The download script will skip YouTube unless `YOUTUBE_API_KEY` is set. It 
     ```
 
 - “command not found: python3”
-  - Run `brew install python` and verify `python3 --version`.
+  - Install Python (`brew install python`) or use python.org installer. Verify:
+    ```
+    python3 --version
+    which python3
+    ```
 
-- “venv activation didn’t change my prompt”
-  - Make sure you’re in the project folder, then run:
+- venv activation didn’t change my prompt
+  - Ensure you’re in the project folder, then:
     ```
     source .venv/bin/activate
     ```
-  - If it still doesn’t show, try:
+  - Check which Python and pip you’re using:
     ```
-    echo $PATH
     which python
     which pip
     ```
-    Verify they point inside `.venv/bin/`.
+    They should point inside `.venv/bin/`.
 
 - Jupyter doesn’t open a browser
-  - Terminal prints a local URL like http://localhost:8888/lab. Copy-paste it into Safari/Chrome.
+  - Terminal prints a local URL (http://localhost:8888/lab). Copy-paste into Safari/Chrome.
 
 - “Permission denied” or “Xcode command line tools missing”
-  - Run:
+  - Install Apple’s command line tools:
     ```
     xcode-select --install
     ```
-    This installs essential build tools Apple requires for some packages.
 
-- “pip installs to the wrong location”
-  - Ensure the venv is active (prompt shows `(.venv)`).
-  - Use `which pip` to confirm it points to `.venv/bin/pip`.
+- pip installs to the wrong location
+  - Activate venv first (`source .venv/bin/activate`)
+  - Confirm `which pip` points to `.venv/bin/pip`
 
-- Notebook says “Untrusted” or won’t run cells
-  - Use the “Trust” button in Jupyter Labs or open the Command Palette (⇧⌘P) and search “Trust Notebook”.
+- Notebook says “Untrusted” or won’t run
+  - Use the “Trust” button in Jupyter Lab, or Command Palette (⇧⌘P) > “Trust Notebook”
 
-- Google Trends returns empty data
-  - Try running later; Trends can throttle. Ensure you have internet and correct timeframe.
+- Google Trends returned empty data
+  - Trends can throttle or temporarily return no data. Try again later. Ensure timeframe is valid and you have a network connection.
+
+- Wrong kernel in Jupyter
+  - If you registered your venv kernel (`ipykernel install`), select it via Kernel > Change Kernel (“Python (aimusic)” or similar).
+  - Otherwise, make sure your venv is active when launching `jupyter lab` so it uses the right Python.
 
 
 ## 10) Alternatives (optional)
 
 - Anaconda (conda)
-  - Anaconda is an all-in-one Python distribution popular for data science.
-  - Download from https://www.anaconda.com and install.
-  - Create an environment:
+  - Anaconda is a popular all-in-one data science distribution.
+  - Install from https://www.anaconda.com
+  - Create and use an environment:
     ```
     conda create -n aimusic python=3.11
     conda activate aimusic
@@ -251,7 +316,10 @@ Note: The download script will skip YouTube unless `YOUTUBE_API_KEY` is set. It 
 
 - Visual Studio Code
   - VS Code can open notebooks directly with the Python extension.
-  - Install VS Code, the Python extension, and ensure your virtual environment is selected.
+  - Install VS Code, the Python extension, then:
+    - Open your project folder
+    - Select the `.venv` interpreter in the bottom right status bar
+    - Open `notebooks/*.ipynb` and run cells
 
 
 ## 11) Quick recap (what you’ll do most often)
@@ -269,11 +337,11 @@ Note: The download script will skip YouTube unless `YOUTUBE_API_KEY` is set. It 
 
 - Open `notebooks/ai_music_tutorial.ipynb`, run cells top-to-bottom.
 
-- For YouTube tutorial:
+- For the YouTube tutorial:
   ```
   export YOUTUBE_API_KEY=your_key_here
   jupyter lab
   ```
   Open `notebooks/youtube_ai_music_tutorial.ipynb` and run cells.
 
-You’re set. If you’d like a short video walkthrough tailored to your setup, I can add one next.
+You’re set. If you’d like a short video walkthrough tailored to your setup, I can add one next. For any step above, feel free to ask for clarification—I’m happy to expand further.
