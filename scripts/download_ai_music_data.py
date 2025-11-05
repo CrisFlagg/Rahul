@@ -13,6 +13,12 @@ try:
 except ImportError:
     snapshot_download = None
 
+# Optional: Google Trends (no API key required)
+try:
+    from pytrends.request import TrendReq
+except ImportError:
+    TrendReq = None
+
 
 DATA_DIR = Path("data")
 SONICS_DIR = DATA_DIR / "sonics"
@@ -20,6 +26,7 @@ FIGURES_DIR = Path("figures")
 
 YOUTUBE_MONTHLY_OUT = DATA_DIR / "youtube_ai_music_monthly.csv"
 DEEZER_POINTS_OUT = DATA_DIR / "deezer_ai_daily_uploads.csv"
+GOOGLE_TRENDS_OUT = DATA_DIR / "google_trends_ai_music.csv"
 
 
 def ensure_dirs():
@@ -218,6 +225,40 @@ def save_deezer_points() -> pd.DataFrame:
     return df
 
 
+def collect_google_trends(start_date: datetime.date,
+                          end_date: datetime.date,
+                          queries: Optional[List[str]] = None,
+                          geo: str = "") -> Optional[pd.DataFrame]:
+    """
+    Collect monthly Google Trends interest for AI-music-related queries.
+    No API key required. Returns a DataFrame with month and interest columns.
+
+    geo: empty string for worldwide, or country code like 'US'.
+    """
+    if TrendReq is None:
+        print("pytrends is not installed. Please `pip install pytrends` to enable Google Trends collection.")
+        return None
+
+    if queries is None:
+        queries = ["AI generated music", "AI music", "Suno", "Udio", "Boomy"]
+
+    # Google Trends returns weekly data; resample to monthly averages.
+    pytrends = TrendReq(hl="en-US", tz=360)
+    pytrends.build_payload(kw_list=queries, timeframe=f"{start_date.strftime('%Y-%m-%d')} {end_date.strftime('%Y-%m-%d')}", geo=geo)
+    df = pytrends.interest_over_time()
+    if df.empty:
+        print("Google Trends returned empty data.")
+        return None
+
+    df = df.drop(columns=[c for c in ["isPartial"] if c in df.columns])
+    # Resample monthly average
+    df_monthly = df.resample("MS").mean().reset_index()
+    df_monthly = df_monthly.rename(columns={"date": "month"})
+    df_monthly.to_csv(GOOGLE_TRENDS_OUT, index=False)
+    print(f"Saved Google Trends data: {GOOGLE_TRENDS_OUT}")
+    return df_monthly
+
+
 def main():
     ensure_dirs()
 
@@ -237,6 +278,11 @@ def main():
 
     # 3) Save Deezer timeline points
     save_deezer_points()
+
+    # 4) Collect Google Trends monthly interest (no API key required)
+    trends_start = datetime.date(2023, 1, 1)
+    trends_end = datetime.date.today().replace(day=1)
+    collect_google_trends(trends_start, trends_end, queries=None, geo="")
 
     print("Done.")
 

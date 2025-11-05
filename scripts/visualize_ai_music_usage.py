@@ -99,12 +99,56 @@ def plot_sonics_bars(by_source_csv: Path, by_label_csv: Path) -> Path:
     return out if plotted else Path()
 
 
+def plot_google_trends(csv_path: Path) -> Path:
+    """
+    Plot Google Trends monthly interest for AI-music related queries.
+    Multiple series on one chart.
+    """
+    if not csv_path.exists():
+        print(f"Missing Google Trends data: {csv_path}")
+        return Path()
+
+    df = pd.read_csv(csv_path)
+    if "month" not in df.columns:
+        print("Google Trends data malformed: no 'month' column.")
+        return Path()
+
+    df["month"] = pd.to_datetime(df["month"])
+    df = df.sort_values("month")
+
+    # Determine query columns (all non-month numeric columns)
+    query_cols = [c for c in df.columns if c != "month"]
+    if not query_cols:
+        print("Google Trends data malformed: no query columns found.")
+        return Path()
+
+    plt.figure(figsize=(10, 5))
+    for c in query_cols:
+        plt.plot(df["month"], df[c], label=c, linewidth=2)
+    plt.title("Google Trends: Interest Over Time for AI-Music Queries")
+    plt.xlabel("Month")
+    plt.ylabel("Interest (0-100)")
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.legend()
+    out = FIGURES_DIR / "google_trends_ai_music.png"
+    plt.tight_layout()
+    plt.savefig(out)
+    plt.close()
+    print(f"Saved: {out}")
+    return out
+
+
 def main():
     ensure_dirs()
-    yt_out = plot_youtube_monthly(DATA_DIR / "youtube_ai_music_monthly.csv")
-    deezer_out = plot_deezer_points(DATA_DIR / "deezer_ai_daily_uploads.csv")
-    sonics_out = plot_sonics_bars(SONICS_DIR / "fake_counts_by_source.csv",
-                                  SONICS_DIR / "fake_counts_by_label.csv")
+    # YouTube plot (optional, only if data exists)
+    plot_youtube_monthly(DATA_DIR / "youtube_ai_music_monthly.csv")
+    # Deezer timeline (press-reported points)
+    plot_deezer_points(DATA_DIR / "deezer_ai_daily_uploads.csv")
+    # SONICS aggregates
+    plot_sonics_bars(SONICS_DIR / "fake_counts_by_source.csv",
+                     SONICS_DIR / "fake_counts_by_label.csv")
+    # Google Trends (no API key required)
+    plot_google_trends(DATA_DIR / "google_trends_ai_music.csv")
     print("Done.")
 
 
