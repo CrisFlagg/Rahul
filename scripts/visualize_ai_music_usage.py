@@ -1,3 +1,21 @@
+"""
+visualize_ai_music_usage.py
+
+Purpose:
+- Turn the CSV files produced by the downloader into clear charts.
+- Explain, with comments, how pandas DataFrames flow into matplotlib plots.
+
+What you'll learn here:
+- How to load a CSV into a DataFrame (pd.read_csv).
+- How to convert string dates into actual datetime objects (pd.to_datetime).
+- How to sort by time and plot a time series.
+- How to create simple bar charts from grouped counts.
+- How to plot multiple series on one chart (Google Trends queries).
+
+Run after:
+    python scripts/download_ai_music_data.py
+"""
+
 import datetime
 from pathlib import Path
 
@@ -11,18 +29,36 @@ FIGURES_DIR = Path("figures")
 
 
 def ensure_dirs():
+    """
+    Make sure the figures folder exists before saving charts.
+    """
     FIGURES_DIR.mkdir(exist_ok=True)
 
 
 def plot_youtube_monthly(csv_path: Path) -> Path:
+    """
+    Plot monthly counts of AI-music-related YouTube videos (if collected).
+
+    DataFrame concepts:
+    - pd.read_csv(path) -> load CSV into a DataFrame.
+    - pd.to_datetime(df["month"]) -> convert strings like "2024-01-01" to datetime objects.
+    - df.sort_values("month") -> ensure the time series is in chronological order.
+    - We pass DataFrame columns directly to matplotlib to build the chart.
+    """
     if not csv_path.exists():
         print(f"Missing YouTube monthly data: {csv_path}")
         return Path()
 
+    # Load CSV -> DataFrame with columns ['month', 'youtube_ai_music_count']
     df = pd.read_csv(csv_path)
+
+    # Convert 'month' strings to datetime so matplotlib treats them as dates on the x-axis
     df["month"] = pd.to_datetime(df["month"])
+
+    # Sort rows by month ascending (earliest -> latest)
     df = df.sort_values("month")
 
+    # Plot the time series
     plt.figure(figsize=(10, 5))
     plt.plot(df["month"], df["youtube_ai_music_count"], marker="o", linewidth=2, color="#1f77b4")
     plt.title("YouTube AI-Music Related Uploads (Heuristic) per Month")
@@ -38,6 +74,15 @@ def plot_youtube_monthly(csv_path: Path) -> Path:
 
 
 def plot_deezer_points(csv_path: Path) -> Path:
+    """
+    Plot the Deezer daily AI-upload points (press-reported figures).
+
+    DataFrame concepts:
+    - pd.read_csv(path)
+    - pd.to_datetime(df["date"])
+    - df.sort_values("date")
+    - iterating through rows (df.iterrows()) to annotate specific values
+    """
     if not csv_path.exists():
         print(f"Missing Deezer points: {csv_path}")
         return Path()
@@ -48,9 +93,12 @@ def plot_deezer_points(csv_path: Path) -> Path:
 
     plt.figure(figsize=(8, 4))
     plt.plot(df["date"], df["daily_ai_uploads"], marker="o", linestyle="-", color="#ff7f0e")
+
+    # Annotate each point with its value
     for _, row in df.iterrows():
         plt.annotate(f"{row['daily_ai_uploads']}", (row["date"], row["daily_ai_uploads"]),
                      textcoords="offset points", xytext=(0, 8), ha="center", fontsize=9)
+
     plt.title("Deezer Daily Fully AI-Generated Track Uploads (Reported Points)")
     plt.xlabel("Date")
     plt.ylabel("Daily uploads (count)")
@@ -64,9 +112,17 @@ def plot_deezer_points(csv_path: Path) -> Path:
 
 
 def plot_sonics_bars(by_source_csv: Path, by_label_csv: Path) -> Path:
+    """
+    Plot simple bar charts from SONICS aggregates.
+
+    DataFrame concepts:
+    - df = pd.read_csv(path) -> DataFrame with columns like ['source', 'count'].
+    - axes[0].bar(x_values, y_values) -> bar chart of counts per category.
+    """
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     plotted = False
 
+    # Left chart: counts by source (Suno/Udio)
     if by_source_csv.exists():
         df_src = pd.read_csv(by_source_csv)
         axes[0].bar(df_src["source"], df_src["count"], color="#2ca02c")
@@ -78,13 +134,14 @@ def plot_sonics_bars(by_source_csv: Path, by_label_csv: Path) -> Path:
         axes[0].text(0.5, 0.5, "Missing counts_by_source", ha="center", va="center")
         axes[0].axis("off")
 
+    # Right chart: counts by label (full/half/mostly fake)
     if by_label_csv.exists():
         df_lbl = pd.read_csv(by_label_csv)
         axes[1].bar(df_lbl["label"], df_lbl["count"], color="#d62728")
         axes[1].set_title("SONICS: Fake Songs by Label")
         axes[1].set_xlabel("Label")
         axes[1].set_ylabel("Count")
-        axes[1].tick_params(axis='x', rotation=20)
+        axes[1].tick_params(axis='x', rotation=20)  # rotate x labels so they don't overlap
         plotted = True
     else:
         axes[1].text(0.5, 0.5, "Missing counts_by_label", ha="center", va="center")
@@ -103,6 +160,10 @@ def plot_google_trends(csv_path: Path) -> Path:
     """
     Plot Google Trends monthly interest for AI-music related queries.
     Multiple series on one chart.
+
+    DataFrame concepts:
+    - df.columns contains both 'month' and one column per query.
+    - We loop through each query column and plot it as a separate line.
     """
     if not csv_path.exists():
         print(f"Missing Google Trends data: {csv_path}")
@@ -113,6 +174,7 @@ def plot_google_trends(csv_path: Path) -> Path:
         print("Google Trends data malformed: no 'month' column.")
         return Path()
 
+    # Ensure 'month' is a datetime so matplotlib formats the axis nicely
     df["month"] = pd.to_datetime(df["month"])
     df = df.sort_values("month")
 
@@ -139,6 +201,13 @@ def plot_google_trends(csv_path: Path) -> Path:
 
 
 def main():
+    """
+    Drive the visualization pipeline:
+      - If YouTube monthly data exists, plot it.
+      - Plot Deezer reported points.
+      - Plot SONICS aggregates (bars).
+      - Plot Google Trends multi-series.
+    """
     ensure_dirs()
     # YouTube plot (optional, only if data exists)
     plot_youtube_monthly(DATA_DIR / "youtube_ai_music_monthly.csv")
