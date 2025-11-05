@@ -196,7 +196,7 @@ Then open the notebooks under `notebooks/` and run them the same way.
 
 ## 6) Optional: Set your YouTube API key (for the YouTube tutorial)
 
-The YouTube tutorial uses the YouTube Data API to count monthly uploads matching AI-music queries (heuristic).
+The YouTube tutorial uses the YouTube Data API v3 to count monthly uploads matching AI-music queries (heuristic). You can either set the key in your shell before launching Jupyter, or paste it when the notebook prompts you.
 
 - Set the key in your shell (zsh):
   ```
@@ -211,7 +211,63 @@ echo 'export YOUTUBE_API_KEY=your_key_here' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-Note: The main pipeline runs without YouTube (it will skip that part if the key isn’t set).
+### How to obtain a YouTube Data API key (step-by-step)
+
+1) Sign in to Google Cloud Console
+   - Go to https://console.cloud.google.com/ and sign in with your Google account.
+
+2) Create a new project (or select an existing one)
+   - Click the project dropdown at the top left and choose “New Project.”
+   - Give it a name (e.g., “ai-music-tutorial”), then click Create.
+   - Make sure the new project is selected (visible at the top bar).
+
+3) Enable the YouTube Data API v3 for your project
+   - In the left sidebar, go to “APIs & Services” > “Library.”
+   - Search for “YouTube Data API v3.”
+   - Click it, then click “Enable.”
+
+4) Create API credentials (API key)
+   - Go to “APIs & Services” > “Credentials.”
+   - Click “Create Credentials” > “API key.”
+   - A new API key string will appear. Copy it.
+
+5) Restrict your API key (recommended for security)
+   - In “Credentials,” click your new API key to edit it.
+   - Under “Application restrictions,” choose:
+     - “IP addresses” (best for scripts run from known networks), or
+     - “HTTP referrers (web sites)” if you’ll call the API from a browser.
+     - Leave “None” only for testing; do not commit an unrestricted key to Git.
+   - Under “API restrictions,” choose “Restrict key,” then select “YouTube Data API v3.”
+   - Click “Save.”
+
+6) Add the key to your environment (do not commit to Git)
+   - Temporarily for the current Terminal session:
+     ```
+     export YOUTUBE_API_KEY=your_key_here
+     ```
+   - Persistently for every Terminal session (zsh):
+     ```
+     echo 'export YOUTUBE_API_KEY=your_key_here' >> ~/.zshrc
+     source ~/.zshrc
+     ```
+   - Alternatively, set it in your shell profile or use a local .env file (not committed).
+
+7) Quotas, billing, and usage
+   - Most basic API usage is free within default quotas.
+   - You can view quota usage under “APIs & Services” > “Dashboard” or “Quotas.”
+   - If you hit quotas, reduce the number of queries or pagination depth.
+   - Official docs: https://developers.google.com/youtube/v3/getting-started
+
+8) Regenerate or delete your key
+   - If your key is exposed or you want to rotate it, go to “APIs & Services” > “Credentials,” select the key, and choose “Regenerate key” or “Delete.”
+   - Update your environment variable with the new key.
+
+Security tips:
+- Treat API keys like passwords—do not post or commit them publicly.
+- Use application and API restrictions to limit abuse.
+- Rotate keys periodically and monitor usage.
+
+Note: The main pipeline runs without YouTube (it will skip that part if the key isn’t set). The Google Trends + SONICS + Deezer steps work with no API keys.
 
 
 ## 7) Running the scripts directly (optional)
