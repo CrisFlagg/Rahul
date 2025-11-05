@@ -1,5 +1,11 @@
 # Executive Summary: AI-Generated Music in 2025
 
+- Uploads are surging while listening share remains modest; platforms curb exposure, police manipulation, and expand labeling/provenance.
+- There is no cross-platform “AI music” dataset; use research corpora (SONICS, AIMS Prompts, SunoCaps) and selective API signals within legal and terms-of-service limits.
+- US copyright protects only human-authored portions; training on copyrighted music is unsettled; the EU enables TDM with opt-outs and adds AI Act transparency; Japan permits broader TDM.
+- Output and voice risks are immediate: copying/sampling and substantial similarity, plus voice cloning liability; DMCA safe harbor and anti-circumvention issues affect platforms and scraping.
+- Governance drives advantage: license or honor opt-outs, document data lineage and provenance, obtain voice consent, label synthetic audio, and track pragmatic KPIs.
+
 AI-generated music has moved from experiment to everyday reality. Major platforms now see meaningful volumes of synthetic tracks, creators are adopting AI tools at pace, and regulators are drafting rules for training, disclosure, and deepfakes. At the same time, measurement is fragmented: there is no single source of truth for how much AI music is on Spotify, YouTube, or TikTok, and most platform insights arrive through press statements and policy notes rather than open datasets. This summary distills what’s happening on platforms, what data exists for analysis, and the legal issues leaders should know—so teams can make informed product, licensing, and risk decisions.
 
 ## Platform signals and adoption
