@@ -20,6 +20,11 @@ Dependencies to install (one-time):
 
 You do NOT need any API keys to run this end-to-end. YouTube is optional
 and will be skipped if you don't set YOUTUBE_API_KEY.
+
+Tip: Think of a pandas DataFrame as an in-memory spreadsheet:
+- rows = observations (e.g., songs)
+- columns = fields/attributes (e.g., source, label, year)
+- You can slice, filter, group, and aggregate like you would in a pivot table.
 """
 
 import os
@@ -27,19 +32,19 @@ import datetime
 from pathlib import Path
 from typing import List, Dict, Optional
 
-# pandas is the main library we use for "DataFrames"
-# A DataFrame is like a spreadsheet/table in memory: rows + named columns.
+# pandas is the main library we use for tabular data.
+# It provides the DataFrame object (a 2D table with labeled axes).
 import pandas as pd
 
 import requests
 
-# We use huggingface_hub to download the SONICS dataset (metadata only).
+# huggingface_hub lets us download the SONICS dataset metadata without manual steps.
 try:
     from huggingface_hub import snapshot_download
 except ImportError:
     snapshot_download = None
 
-# We use pytrends to read Google Trends (no API key required).
+# pytrends is a simple wrapper around Google Trends. No API key needed.
 try:
     from pytrends.request import TrendReq
 except ImportError:
@@ -63,6 +68,10 @@ def ensure_dirs():
 
     This doesn't involve DataFrames; it's just preparing the filesystem so
     our scripts can save files in the expected locations.
+
+    - DATA_DIR: top-level data folder
+    - SONICS_DIR: subfolder specifically for SONICS metadata/aggregates
+    - FIGURES_DIR: used by the visualization script
     """
     DATA_DIR.mkdir(exist_ok=True)
     SONICS_DIR.mkdir(parents=True, exist_ok=True)
@@ -86,10 +95,11 @@ def download_sonics_dataset(local_dir: Path) -> Dict[str, Path]:
         return {}
 
     print("Downloading SONICS dataset from Hugging Face...")
+    # snapshot_download returns the local cache directory where files were stored
     cache_dir = snapshot_download(
         repo_id="awsaf49/sonics",
         repo_type="dataset",
-        local_dir=str(local_dir),
+        local_dir=str(local_dir),  # put a copy under our 'data/sonics' folder
         ignore_patterns=["*.mp3", "*.wav", "*.flac"]  # metadata only
     )
 
@@ -105,9 +115,9 @@ def download_sonics_dataset(local_dir: Path) -> Dict[str, Path]:
 
     out_paths = {}
     if fake_csv:
-        # Read the CSV -> DataFrame
+        # Read the CSV -> DataFrame (loads rows and columns into memory)
         df_fake = pd.read_csv(fake_csv)
-        # Write the DataFrame to our target location
+        # Write the DataFrame to our target location (persist to disk)
         dest = local_dir / "fake_songs.csv"
         df_fake.to_csv(dest, index=False)
         out_paths["fake_songs"] = dest
@@ -140,39 +150,50 @@ def aggregate_sonics_counts(fake_csv: Optional[Path], real_csv: Optional[Path]) 
       1) Counts by 'source' for fake songs (which platform: Suno/Udio).
       2) Counts by 'label' ('full fake', 'half fake', 'mostly fake').
       3) Real songs count by 'year' (if present).
+
+    Why reset_index(name="count")?
+    - groupby(...).size() returns a Series (1D labeled array).
+    - reset_index(name="count") turns it back into a 2D DataFrame with explicit column names.
     """
     if fake_csv and fake_csv.exists():
         df_fake = pd.read_csv(fake_csv)
-        # Look at the columns in this DataFrame:
+        # Look at the columns in this DataFrame (metadata fields available)
         cols = df_fake.columns.tolist()
         print("SONICS fake_songs.csv columns:", cols)
 
-        # Group by 'source' and count rows in each group
-        # This returns a new DataFrame with columns ['source', 'count'].
+        # Group by 'source' and count rows in each group.
+        # Example: source == "Suno" vs "Udio"
         counts_by_source = df_fake.groupby("source").size().reset_index(name="count")
         counts_by_source.to_csv(SONICS_DIR / "fake_counts_by_source.csv", index=False)
         print(f"SONICS aggregates: {SONICS_DIR / 'fake_counts_by_source.csv'}")
 
-        # If a 'label' column exists, group by that too
+        # If a 'label' column exists, group by that too.
+        # Example labels in SONICS: "full fake", "half fake", "mostly fake"
         if "label" in cols:
             counts_by_label = df_fake.groupby("label").size().reset_index(name="count")
             counts_by_label.to_csv(SONICS_DIR / "fake_counts_by_label.csv", index=False)
             print(f"SONICS aggregates: {SONICS_DIR / 'fake_counts_by_label.csv'}")
+        else:
+            print("No 'label' column found in fake_songs.csv; skipping label aggregate.")
 
     if real_csv and real_csv.exists():
         df_real = pd.read_csv(real_csv)
         print("SONICS real_songs.csv columns:", df_real.columns.tolist())
-        # If a 'year' column exists, count songs per year
+        # If a 'year' column exists, count songs per year (simple trend proxy)
         if "year" in df_real.columns:
             counts_by_year = df_real.groupby("year").size().reset_index(name="count")
             counts_by_year.to_csv(SONICS_DIR / "real_counts_by_year.csv", index=False)
             print(f"SONICS aggregates: {SONICS_DIR / 'real_counts_by_year.csv'}")
+        else:
+            print("No 'year' column found in real_songs.csv; skipping year aggregate.")
 
 
 def month_range(start_date: datetime.date, end_date: datetime.date) -> List[datetime.date]:
     """
     Utility to generate a list of month-start dates between start_date and end_date, inclusive.
-    Not a pandas concept—just handy for building monthly series.
+
+    Not a pandas concept—just handy for building monthly series when we need
+    to iterate month by month (e.g., API calls or rolling aggregations).
     """
     months = []
     cur = datetime.date(start_date.year, start_date.month, 1)
@@ -270,10 +291,10 @@ def collect_youtube_monthly(api_key: str,
         rows.append({"month": m.isoformat(), "youtube_ai_music_count": count_sum})
         print(f"{m.isoformat()}: {count_sum}")
 
-    # Convert rows -> DataFrame
+    # Convert rows -> DataFrame (DataFrame constructor maps dict keys to columns)
     df = pd.DataFrame(rows)
 
-    # Write to CSV
+    # Write to CSV (index=False means don't write row numbers)
     df.to_csv(YOUTUBE_MONTHLY_OUT, index=False)
     print(f"Saved YouTube monthly counts: {YOUTUBE_MONTHLY_OUT}")
     return df
@@ -291,6 +312,9 @@ def save_deezer_points() -> pd.DataFrame:
       - Jan 2025: ~10k daily fully AI-generated tracks uploaded
       - Apr 2025: ~20k daily
       - Sep 2025: ~30k daily (28% of daily deliveries)
+
+    Why store these points?
+    - They act as a simple time series we can visualize even without direct API access.
     """
     points = [
         {"date": "2025-01-15", "daily_ai_uploads": 10000},
@@ -312,13 +336,16 @@ def collect_google_trends(start_date: datetime.date,
     No API key required. Returns a DataFrame with month and interest columns.
 
     DataFrame concepts:
-    - interest_over_time() returns a DataFrame with a DateTimeIndex.
-    - df.resample("MS").mean() resamples weekly -> monthly start ("MS") by averaging.
-    - df.reset_index() turns the index into a normal 'date' column.
+    - interest_over_time() returns a DataFrame with a DateTimeIndex (dates are the index, not a column).
+    - df.resample("MS").mean() resamples weekly -> monthly start ("MS") by averaging values in each month.
+    - df.reset_index() turns the index into a normal 'date' column (so we can save it easily).
     - df.rename(columns={"date": "month"}) renames for clarity.
     - df.to_csv("path") writes the result to disk.
 
     geo: empty string for worldwide, or country code like 'US'.
+
+    Note: Google Trends values are normalized (0–100) and represent relative interest,
+    not absolute counts of uploads or streams.
     """
     if TrendReq is None:
         print("pytrends is not installed. Please `pip install pytrends` to enable Google Trends collection.")
@@ -328,10 +355,12 @@ def collect_google_trends(start_date: datetime.date,
         queries = ["AI generated music", "AI music", "Suno", "Udio", "Boomy"]
 
     # Initialize pytrends and request interest over time.
-    pytrends = TrendReq(hl="en-US", tz=360)
+    pytrends = TrendReq(hl="en-US", tz=360)  # tz=360 means UTC+6 for request time; not critical here.
     timeframe = f"{start_date.strftime('%Y-%m-%d')} {end_date.strftime('%Y-%m-%d')}"
     pytrends.build_payload(kw_list=queries, timeframe=timeframe, geo=geo)
-    df = pytrends.interest_over_time()  # DataFrame with weekly resolution by default
+
+    # This returns weekly data by default (DateTimeIndex + one column per query)
+    df = pytrends.interest_over_time()
 
     if df.empty:
         print("Google Trends returned empty data.")
@@ -340,10 +369,11 @@ def collect_google_trends(start_date: datetime.date,
     # The 'isPartial' column (if present) indicates ongoing weeks; it's not needed for our plots.
     df = df.drop(columns=[c for c in ["isPartial"] if c in df.columns])
 
-    # Resample weekly -> monthly start, taking the average per month
+    # Resample weekly -> monthly start, taking the average per month.
+    # 'MS' == Month Start. Other options include 'M' (Month End), etc.
     df_monthly = df.resample("MS").mean().reset_index()
 
-    # Rename the 'date' column to 'month' for clarity
+    # Rename the 'date' column to 'month' for clarity (fits the time-series pattern in our repo)
     df_monthly = df_monthly.rename(columns={"date": "month"})
 
     # Save the monthly time series to CSV
@@ -362,6 +392,10 @@ def main():
       3) Optionally collect YouTube monthly counts (skipped if no API key).
       4) Save Deezer timeline points (press-reported figures).
       5) Collect Google Trends monthly interest without any API key.
+
+    After this runs, check the 'data' folder for CSVs and then run:
+        python scripts/visualize_ai_music_usage.py
+    to create charts from the CSVs.
     """
     ensure_dirs()
 

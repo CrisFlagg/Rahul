@@ -11,9 +11,15 @@ What you'll learn here:
 - How to sort by time and plot a time series.
 - How to create simple bar charts from grouped counts.
 - How to plot multiple series on one chart (Google Trends queries).
+- Why we call plt.tight_layout() and how saving figures works.
 
 Run after:
     python scripts/download_ai_music_data.py
+
+Tip: matplotlib is the plotting library we use here.
+- plt.figure() creates a new plotting canvas (width x height in inches).
+- plt.plot() draws a line (we pass x and y from DataFrame columns).
+- plt.savefig() writes the image file to disk; plt.close() frees memory.
 """
 
 import datetime
@@ -31,6 +37,9 @@ FIGURES_DIR = Path("figures")
 def ensure_dirs():
     """
     Make sure the figures folder exists before saving charts.
+
+    Path.mkdir(exist_ok=True) will create the folder if it doesn't exist and
+    silently continue if it does — so it's safe to call every run.
     """
     FIGURES_DIR.mkdir(exist_ok=True)
 
@@ -44,6 +53,11 @@ def plot_youtube_monthly(csv_path: Path) -> Path:
     - pd.to_datetime(df["month"]) -> convert strings like "2024-01-01" to datetime objects.
     - df.sort_values("month") -> ensure the time series is in chronological order.
     - We pass DataFrame columns directly to matplotlib to build the chart.
+
+    Chart decisions:
+    - marker="o" shows a dot for each monthly point (better readability).
+    - linewidth=2 makes the line more visible.
+    - grid(True, linestyle="--", alpha=0.5) adds a faint grid to aid reading values.
     """
     if not csv_path.exists():
         print(f"Missing YouTube monthly data: {csv_path}")
@@ -65,6 +79,8 @@ def plot_youtube_monthly(csv_path: Path) -> Path:
     plt.xlabel("Month")
     plt.ylabel("Video count (sum of queries)")
     plt.grid(True, linestyle="--", alpha=0.5)
+
+    # tight_layout() reduces extra whitespace and prevents label cutoff
     out = FIGURES_DIR / "youtube_ai_music_usage.png"
     plt.tight_layout()
     plt.savefig(out)
@@ -82,6 +98,9 @@ def plot_deezer_points(csv_path: Path) -> Path:
     - pd.to_datetime(df["date"])
     - df.sort_values("date")
     - iterating through rows (df.iterrows()) to annotate specific values
+
+    Annotation explains exact values next to each point so viewers
+    can read the chart without hovering.
     """
     if not csv_path.exists():
         print(f"Missing Deezer points: {csv_path}")
@@ -118,6 +137,9 @@ def plot_sonics_bars(by_source_csv: Path, by_label_csv: Path) -> Path:
     DataFrame concepts:
     - df = pd.read_csv(path) -> DataFrame with columns like ['source', 'count'].
     - axes[0].bar(x_values, y_values) -> bar chart of counts per category.
+
+    Why two subplots?
+    - We visualize "by source" (Suno/Udio) and "by label" side by side to compare.
     """
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     plotted = False
@@ -131,6 +153,7 @@ def plot_sonics_bars(by_source_csv: Path, by_label_csv: Path) -> Path:
         axes[0].set_ylabel("Count")
         plotted = True
     else:
+        # When a file is missing, we turn this subplot into a simple message
         axes[0].text(0.5, 0.5, "Missing counts_by_source", ha="center", va="center")
         axes[0].axis("off")
 
@@ -162,8 +185,11 @@ def plot_google_trends(csv_path: Path) -> Path:
     Multiple series on one chart.
 
     DataFrame concepts:
-    - df.columns contains both 'month' and one column per query.
+    - df.columns contains both 'month' and one column per query (e.g., 'Suno', 'Udio').
     - We loop through each query column and plot it as a separate line.
+
+    Design note:
+    - Plotting all series together lets you compare relative interest over time.
     """
     if not csv_path.exists():
         print(f"Missing Google Trends data: {csv_path}")
@@ -207,6 +233,12 @@ def main():
       - Plot Deezer reported points.
       - Plot SONICS aggregates (bars).
       - Plot Google Trends multi-series.
+
+    After running, check the 'figures' folder for:
+      - youtube_ai_music_usage.png (if data exists)
+      - deezer_ai_daily_uploads.png
+      - sonics_aggregates.png
+      - google_trends_ai_music.png
     """
     ensure_dirs()
     # YouTube plot (optional, only if data exists)
